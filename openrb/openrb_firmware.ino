@@ -31,8 +31,8 @@
 // ──────────────────────────────────────────────
 // 수동 버튼 비트마스크
 // ──────────────────────────────────────────────
-#define BTN_PAN_PLUS     0x02   // bit0: 팬 + (우)
-#define BTN_PAN_MINUS    0x01   // bit1: 팬 - (좌)
+#define BTN_PAN_PLUS     0x01   // bit0: 팬 + (우)
+#define BTN_PAN_MINUS    0x02   // bit1: 팬 - (좌)
 #define BTN_TILT_PLUS    0x04   // bit2: 틸트 + (업)
 #define BTN_TILT_MINUS   0x08   // bit3: 틸트 - (다운)
 
@@ -363,8 +363,9 @@ void update_manual()
     int32_t pan_delta  = 0;
     int32_t tilt_delta = 0;
 
-    if (manual_btn & BTN_PAN_PLUS)   pan_delta  += manual_step;
-    if (manual_btn & BTN_PAN_MINUS)  pan_delta  -= manual_step;
+    // BUG FIX: 팬 모터 물리적 장착 방향 반전으로 부호 반전
+    if (manual_btn & BTN_PAN_PLUS)   pan_delta  -= manual_step;
+    if (manual_btn & BTN_PAN_MINUS)  pan_delta  += manual_step;
     if (manual_btn & BTN_TILT_PLUS)  tilt_delta += manual_step;
     if (manual_btn & BTN_TILT_MINUS) tilt_delta -= manual_step;
 
