@@ -114,6 +114,15 @@ UDP RX 수신 시:
 g++ -std=c++17 -O2 zybo_bridge.cpp -o zybo_bridge -lboost_system -lpthread
 ```
 
+**Docker 빌드 및 실행 (Zybo 보드)**
+```bash
+# 빌드 + 실행
+docker build -t zybo-bridge . && docker run --rm -it --network host --device /dev/ttyPS1 zybo-bridge
+
+# 실행만
+docker run --rm -it --network host --device /dev/ttyPS1 zybo-bridge
+```
+
 **실행 옵션**
 
 | 옵션 | 기본값 | 설명 |
@@ -132,7 +141,6 @@ g++ -std=c++17 -O2 zybo_bridge.cpp -o zybo_bridge -lboost_system -lpthread
 # Thor IP 고정 지정
 ./zybo_bridge --udp-port 6000 --feedback-ip 10.42.0.10 --feedback-port 6001 --serial /dev/ttyPS1
 ```
-
 ---
 
 ## 디버그 출력
