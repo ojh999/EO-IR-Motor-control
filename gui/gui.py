@@ -577,7 +577,7 @@ def main():
     parser = argparse.ArgumentParser(description="Pan/Tilt UDP GUI: GUI->Thor 9B, Thor->GUI 36B")
     parser.add_argument("--ip", default="10.42.0.168", help="Thor IP address")
     parser.add_argument("--cmd-port", type=int, default=3000, help="GUI -> Thor UDP port")
-    parser.add_argument("--tlm-port", type=int, default=5001, help="Thor -> GUI UDP receive port")
+    parser.add_argument("--tlm-port", type=int, default=7001, help="Thor -> GUI UDP receive port")
     args = parser.parse_args()
 
     print("Pan/Tilt UDP GUI")
