@@ -3,7 +3,7 @@ gui_interface_node:
     listen_ip: "0.0.0.0"
     listen_port: 3000
     gui_ip: "10.42.0.1"
-    telemetry_port: 5001
+    telemetry_port: 9001
     command_poll_ms: 10
     motor_tlm_period_ms: 50
     system_tlm_period_ms: 100
