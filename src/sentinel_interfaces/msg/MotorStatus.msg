@@ -1,2 +1,0 @@
-SingleMotorStatus pan
-SingleMotorStatus tilt
