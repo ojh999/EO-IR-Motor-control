@@ -1,6 +1,5 @@
 # EO-IR Motor Control
 
-
 EO/IR 짐벌 시스템의 Pan-Tilt 모터 제어 소프트웨어입니다.  
 OpenRB-150 펌웨어부터 ROS2 제어 노드까지 전체 스택을 포함합니다.
 
@@ -25,11 +24,15 @@ GUI ←─UDP── Thor(ROS2) ←─UDP── Zybo Bridge ←─UART── Open
 
 ## 제어 모드
 
-| 모드 | 값 | 동작 |
-|------|----|------|
-| **SCAN** | 0 | scan_step 속도로 팬 자동 왕복, 틸트 고정 |
-| **MANUAL** | 1 | 버튼 비트마스크로 팬/틸트 수동 조작 |
-| **TRACK** | 2 | PID 제어 결과를 모터에 직접 전달 |
+GUI에서 **자동/수동** 과 **추적/비추적** 두 가지를 조합해 최종 모드가 결정됩니다.
+
+| auto_manual | tracking | 최종 모드 | 동작 |
+|-------------|----------|-----------|------|
+| 0 (scan) | 0 (비추적) | SCAN | scan_step으로 팬 자동 왕복 |
+| 1 (manual) | 0 (비추적) | MANUAL | 버튼으로 팬/틸트 수동 조작 |
+| 1 (manual) | 1 (추적) | TRACK | PID 제어 결과를 모터에 직접 전달 |
+
+Thor가 두 값을 조합해 `mode_cmd`(0/1/2)로 변환 후 Zybo로 전달합니다.
 
 ---
 
@@ -39,17 +42,21 @@ GUI ←─UDP── Thor(ROS2) ←─UDP── Zybo Bridge ←─UART── Open
 
 | 구간 | 크기 | 주요 필드 |
 |------|------|-----------|
-| GUI → Thor | 9B (UDP) | mode(1) + tracking(1) + btn(1) + pan(2) + tilt(2) + scan_step(1) + manual_step(1) |
-| Thor → Zybo | 8B (UDP) | mode(1) + btn(1) + pan(2) + tilt(2) + scan_step(1) + manual_step(1) |
-| Zybo → OpenRB | 11B (UART) | AA + mode + btn + pan(2) + tilt(2) + scan_step + manual_step + CHK + 55 |
+| GUI → Thor | 9B (UDP) | auto_manual(1) + tracking(1) + btn(1) + pan(2) + tilt(2) + scan_step(1) + manual_step(1) |
+| Thor → Zybo | 8B (UDP) | mode_cmd(1) + btn(1) + pan(2) + tilt(2) + scan_step(1) + manual_step(1) |
+| Zybo → OpenRB | 11B (UART) | AA + mode_cmd + btn + pan(2) + tilt(2) + scan_step + manual_step + CHK + 55 |
+
+> `mode_cmd` : Thor가 조합 후 OpenRB에 내리는 최종 명령 (0=SCAN, 1=MANUAL, 2=TRACK)
 
 ### 피드백 (OpenRB → Zybo → Thor → GUI)
 
 | 구간 | 크기 | 주요 필드 |
 |------|------|-----------|
-| OpenRB → Zybo | 40B (UART) | AA + mode + PAN(18B) + TILT(18B) + CHK + 55 |
+| OpenRB → Zybo | 40B (UART) | AA + mode_status + PAN(18B) + TILT(18B) + CHK + 55 |
 | Zybo → Thor | 36B (UDP) | PAN(18B) + TILT(18B) |
 | Thor → GUI | 36B (UDP) | PAN(18B) + TILT(18B) |
+
+> `mode_status` : OpenRB가 현재 실행 중인 **동작 상태** (0=SCAN, 1=MANUAL, 2=TRACK)
 
 ---
 
@@ -71,8 +78,14 @@ project/
 │   │       ├── MotorStatus.msg
 │   │       └── ...
 │   └── gui_interface/           # GUI ROS2 인터페이스 노드
-├── zybo_bridge.cpp              # Zybo: UDP ↔ UART 브릿지
-├── openrb_firmware.ino          # OpenRB: 모터 펌웨어 (Arduino)
+├── gui/
+│   └── gui.py                   # Pan/Tilt UDP GUI
+├── zybo/
+│   ├── zybo_bridge.cpp          # Zybo: UDP ↔ UART 브릿지
+│   └── README.md
+├── openrb/
+│   ├── openrb_firmware.ino      # OpenRB: 모터 펌웨어 (Arduino)
+│   └── README.md
 ├── Dockerfile
 ├── docker-compose.yml
 └── .gitignore
@@ -106,12 +119,20 @@ g++ -std=c++17 -O2 zybo_bridge.cpp -o zybo_bridge -lboost_system -lpthread
 
 Arduino IDE에서 `openrb_firmware.ino` 열고 OpenRB-150 보드에 업로드
 
+### GUI
+
+```bash
+python3 gui/gui.py --ip <Thor IP> --cmd-port 3000 --tlm-port 5001
+```
+
 ---
 
 ## 통신 설정
 
 | 항목 | 값 |
 |------|----|
+| GUI ↔ Thor UDP 포트 (명령) | 3000 |
+| GUI ↔ Thor UDP 포트 (피드백) | 5001 |
 | Thor ↔ Zybo UDP 포트 (명령) | 6000 |
 | Thor ↔ Zybo UDP 포트 (피드백) | 6001 |
 | Zybo ↔ OpenRB UART 속도 | 115200 bps |
@@ -124,8 +145,11 @@ Arduino IDE에서 `openrb_firmware.ino` 열고 OpenRB-150 보드에 업로드
 
 ```
 main
-├── feature/openrb-firmware   # OpenRB 모터 펌웨어
-└── featur/zybo               # Zybo 브릿지
+└── dev
+    ├── feature/openrb-firmware   # OpenRB 모터 펌웨어
+    ├── feature/zybo              # Zybo 브릿지
+    ├── feature/thor              # Thor ROS2 제어 노드
+    └── feature/gui               # Pan/Tilt GUI
 ```
 
 ---
@@ -135,4 +159,5 @@ main
 - ROS2 Humble
 - Ubuntu 22.04
 - Boost.Asio (Zybo Bridge)
-- Arduino IDE / Dynamixel2Arduino (OpenRB)# EO-IR-Motor-control
+- Arduino IDE / Dynamixel2Arduino (OpenRB)
+- Python 3.x / tkinter (GUI)
