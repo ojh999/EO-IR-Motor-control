@@ -31,8 +31,8 @@
 // ──────────────────────────────────────────────
 // 수동 버튼 비트마스크
 // ──────────────────────────────────────────────
-#define BTN_PAN_PLUS     0x01   // bit0: 팬 + (우)
-#define BTN_PAN_MINUS    0x02   // bit1: 팬 - (좌)
+#define BTN_PAN_PLUS     0x02   // bit0: 팬 + (우)
+#define BTN_PAN_MINUS    0x01   // bit1: 팬 - (좌)
 #define BTN_TILT_PLUS    0x04   // bit2: 틸트 + (업)
 #define BTN_TILT_MINUS   0x08   // bit3: 틸트 - (다운)
 
