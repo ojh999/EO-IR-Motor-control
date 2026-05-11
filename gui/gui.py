@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-Pan/Tilt Gimbal UDP GUI — protocol matched to the provided system document
+Pan/Tilt Gimbal UDP GUI — matched to system design document
 
 GUI -> Thor UDP: 9 bytes
-    Byte 0      : auto/manual/track mode (1B)
-                  0=scan, 1=manual, 2=track
-    Byte 1      : scan-mode button bitmask (1B)
+    Byte 0      : mode (1B)  0=scan, 1=manual
+    Byte 1      : tracking (1B)  0=off, 1=on
     Byte 2      : manual-mode button bitmask (1B)
-    Byte 3..4   : pan position/target (uint16, little-endian)
-    Byte 5..6   : tilt position/target (uint16, little-endian)
+    Byte 3..4   : pan position (uint16, little-endian, 0~4095)
+    Byte 5..6   : tilt position (uint16, little-endian, 0~4095)
     Byte 7      : scan step (1B)
     Byte 8      : manual step (1B)
 
@@ -21,14 +20,11 @@ Run:
 
 Keys:
     1 / 2          : Scan / Manual mode
-    Arrow keys     : Pan/Tilt movement command
-    W/A/S/D        : Pan/Tilt movement command
-    C              : Home/center command
+    T              : Tracking toggle
+    Arrow keys     : direction (manual mode only)
+    W/A/S/D        : direction (manual mode only)
+    C              : Home/center
     +/-            : Step size of current mode
-
-Pan/Tilt 각도: 키보드로 숫자 입력 후 Enter로 전송
-방향 버튼: 키보드(WASD/방향키) 또는 마우스 클릭
-추적: 별도 체크박스로 ON/OFF
 """
 
 import argparse
@@ -50,7 +46,6 @@ BUTTON_C = 0x10
 
 MODE_SCAN = 0
 MODE_MANUAL = 1
-MODE_TRACK = 2
 MODE_NAMES = {
     MODE_SCAN: "Scan",
     MODE_MANUAL: "Manual",
@@ -106,8 +101,8 @@ class UdpTransceiver:
     def send_cmd(
         self,
         mode: int,
-        scan_button: int,
-        manual_button: int,
+        tracking: int,
+        button: int,
         pan_pos: int,
         tilt_pos: int,
         scan_step: int,
@@ -120,8 +115,8 @@ class UdpTransceiver:
         pkt = struct.pack(
             "<BBBHHBB",
             mode & 0xFF,
-            scan_button & 0xFF,
-            manual_button & 0xFF,
+            tracking & 0xFF,
+            button & 0xFF,
             pan_pos & 0xFFFF,
             tilt_pos & 0xFFFF,
             scan_step & 0xFF,
@@ -158,7 +153,6 @@ def _parse_motor_fb(data: bytes, offset: int) -> MotorFeedback:
 
 
 def parse_tlm_36b(data: bytes, state: TelemetryState) -> bool:
-    """Parse Thor -> GUI 36B telemetry: pan feedback 18B + tilt feedback 18B."""
     if len(data) != TLM_PACKET_SIZE:
         state.rx_bad_packets += 1
         return False
@@ -186,14 +180,8 @@ class App:
     STEP_MAX = 10
 
     KEY_MAP = {
-        "Left": "L",
-        "Right": "R",
-        "Up": "U",
-        "Down": "D",
-        "a": "L",
-        "d": "R",
-        "w": "U",
-        "s": "D",
+        "Left": "L", "Right": "R", "Up": "U", "Down": "D",
+        "a": "L", "d": "R", "w": "U", "s": "D",
         "c": "C",
     }
 
@@ -203,12 +191,12 @@ class App:
         self.running = True
 
         self.current_mode = MODE_MANUAL
+        self.tracking = False
         self.scan_step = 1
         self.manual_step = 1
         self.pan_cmd = CENTER_POS
         self.tilt_cmd = CENTER_POS
         self.pressed_keys: set[str] = set()
-        self.tracking = False
 
         self.root = tk.Tk()
         self.root.title("Pan/Tilt UDP GUI — 9B CMD / 36B TLM")
@@ -245,6 +233,7 @@ class App:
         info.pack(fill="x", pady=(0, 8))
         ttk.Label(info, text=f"Target Thor: {self.udp.target[0]}:{self.udp.target[1]}  |  CMD=9B, TLM=36B").pack(side="left")
 
+        # ── Mode + Tracking ──
         mode_frame = ttk.LabelFrame(main, text="  Mode  ", padding=8)
         mode_frame.pack(fill="x", pady=(0, 8))
 
@@ -255,7 +244,6 @@ class App:
             self.mode_btns[val] = btn
         self._highlight_mode()
 
-        # Tracking checkbox (separate from mode)
         self.track_var = tk.BooleanVar(value=False)
         self.track_chk = tk.Checkbutton(
             mode_frame, text="추적", variable=self.track_var,
@@ -265,7 +253,8 @@ class App:
         )
         self.track_chk.pack(side="left", padx=(16, 4))
 
-        pad_frame = ttk.LabelFrame(main, text="  Direction / Home  ", padding=12)
+        # ── Direction Pad ──
+        pad_frame = ttk.LabelFrame(main, text="  Direction / Home (Manual only)  ", padding=12)
         pad_frame.pack(fill="x", pady=(0, 8))
 
         grid = ttk.Frame(pad_frame)
@@ -285,9 +274,7 @@ class App:
         self.tx_var = tk.StringVar()
         ttk.Label(pad_frame, textvariable=self.tx_var, style="V.TLabel").pack(pady=(8, 0))
 
-        pos_frame = ttk.LabelFrame(main, text="  Pan/Tilt Command Position  ", padding=8)
-        pos_frame.pack(fill="x", pady=(0, 8))
-
+        # ── Pan/Tilt Entry ──
         pos_frame = ttk.LabelFrame(main, text="  Pan/Tilt Command Position (Enter로 전송)  ", padding=8)
         pos_frame.pack(fill="x", pady=(0, 8))
 
@@ -296,6 +283,7 @@ class App:
         self._make_pos_entry(pos_frame, "Pan", self.pan_var, self._on_pan_enter)
         self._make_pos_entry(pos_frame, "Tilt", self.tilt_var, self._on_tilt_enter)
 
+        # ── Step Size ──
         step_frame = ttk.LabelFrame(main, text="  Step Size  ", padding=8)
         step_frame.pack(fill="x", pady=(0, 8))
 
@@ -307,6 +295,7 @@ class App:
         ttk.Label(step_frame, textvariable=self.active_step_var, style="H.TLabel").pack(pady=(4, 0))
         self._update_active_step_label()
 
+        # ── Telemetry ──
         tlm_frame = ttk.LabelFrame(main, text="  Thor -> GUI Telemetry 36B  ", padding=8)
         tlm_frame.pack(fill="x", pady=(0, 8))
 
@@ -315,6 +304,7 @@ class App:
                                 relief="flat", state="disabled", borderwidth=0)
         self.tlm_text.pack()
 
+        # ── Log ──
         log_frame = ttk.LabelFrame(main, text="  Log  ", padding=8)
         log_frame.pack(fill="x")
 
@@ -355,7 +345,7 @@ class App:
         self._highlight_mode()
         self._update_active_step_label()
         self._send_current_cmd("mode")
-        self._log(f"Mode -> {mode} ({MODE_NAMES[mode]})")
+        self._log(f"Mode -> {MODE_NAMES[mode]}")
 
     def _highlight_mode(self):
         for mode, btn in self.mode_btns.items():
@@ -435,7 +425,10 @@ class App:
         else:
             self.active_step_var.set(f"Active step: manual={self.manual_step}")
 
-    def _build_bitmask(self) -> int:
+    def _build_button_mask(self) -> int:
+        """수동 모드일 때만 버튼 bitmask 반환, 그 외 0."""
+        if self.current_mode != MODE_MANUAL:
+            return 0x00
         mask = 0
         if "L" in self.pressed_keys: mask |= BUTTON_L
         if "R" in self.pressed_keys: mask |= BUTTON_R
@@ -444,30 +437,26 @@ class App:
         if "C" in self.pressed_keys: mask |= BUTTON_C
         return mask
 
-    def _split_buttons_by_mode(self) -> tuple[int, int]:
-        mask = self._build_bitmask()
-        if self.current_mode == MODE_SCAN:
-            return mask, 0x00
-        if self.current_mode == MODE_MANUAL:
-            return 0x00, mask
-        return 0x00, 0x00
-
     def _send_current_cmd(self, reason: str = ""):
-        scan_btn, manual_btn = self._split_buttons_by_mode()
-        mode = MODE_TRACK if self.tracking else self.current_mode
+        button = self._build_button_mask()
+        track_flag = 1 if self.tracking else 0
+
         self.udp.send_cmd(
-            mode,
-            scan_btn,
-            manual_btn,
-            self.pan_cmd,
-            self.tilt_cmd,
-            self.scan_step,
-            self.manual_step,
+            self.current_mode,     # byte 0: mode (0=scan, 1=manual)
+            track_flag,            # byte 1: tracking (0=off, 1=on)
+            button,                # byte 2: manual button bitmask
+            self.pan_cmd,          # byte 3-4: pan
+            self.tilt_cmd,         # byte 5-6: tilt
+            self.scan_step,        # byte 7: scan step
+            self.manual_step,      # byte 8: manual step
         )
+
+        track_str = " [TRACK]" if self.tracking else ""
         self.tx_var.set(
-            f"TX 9B: mode={mode} scanBtn=0x{scan_btn:02X} manualBtn=0x{manual_btn:02X} "
-            f"pan={self.pan_cmd} tilt={self.tilt_cmd} S={self.scan_step} M={self.manual_step}"
-            f"{' [TRACK]' if self.tracking else ''}"
+            f"TX 9B: mode={self.current_mode}({MODE_NAMES[self.current_mode]}) "
+            f"track={track_flag} btn=0x{button:02X} "
+            f"pan={self.pan_cmd} tilt={self.tilt_cmd} "
+            f"S={self.scan_step} M={self.manual_step}{track_str}"
         )
 
     # ── Key Handling ─────────────────────────────────────────────────
@@ -488,6 +477,9 @@ class App:
             self._set_mode(MODE_SCAN)
         elif event.keysym == "2":
             self._set_mode(MODE_MANUAL)
+        elif event.keysym == "t":
+            self.track_var.set(not self.track_var.get())
+            self._on_track_toggle()
         elif event.keysym in ("plus", "equal"):
             if self.current_mode == MODE_SCAN:
                 self._scan_step_inc()
@@ -507,7 +499,7 @@ class App:
 
     def _update_pad_visual(self):
         for name, lbl in self.btn_labels.items():
-            if name in self.pressed_keys:
+            if name in self.pressed_keys and self.current_mode == MODE_MANUAL:
                 lbl.configure(bg="#89b4fa", fg="#1e1e2e")
             else:
                 lbl.configure(bg="#313244", fg="#6c7086")
@@ -591,7 +583,7 @@ def main():
     print("Pan/Tilt UDP GUI")
     print(f"  GUI -> Thor CMD : {args.ip}:{args.cmd_port} / 9B")
     print(f"  Thor -> GUI TLM : 0.0.0.0:{args.tlm_port} / 36B")
-    print("  CMD packet      : <BBBHHBB = mode, scan_btn, manual_btn, pan, tilt, scan_step, manual_step")
+    print("  CMD packet      : <BBBHHBB = mode, tracking, button, pan, tilt, scan_step, manual_step")
     print()
 
     udp = UdpTransceiver(args.ip, args.cmd_port, args.tlm_port)
