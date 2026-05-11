@@ -18,7 +18,6 @@ EO 카메라 기반 객체 추적 PID 제어 노드의 소프트웨어 시뮬레
      PID 계산 → /motor/angle/set
 
 ---
----
 
 ## 테스트 환경
 
@@ -36,7 +35,7 @@ EO 카메라 기반 객체 추적 PID 제어 노드의 소프트웨어 시뮬레
 
 ## 결과 그래프
 
-### 전체 추적 응답
+### 전체 추적 응답 (480p, Kp=0.1)
 ![tracking_overview](docs/tracking_overview.png)
 
 | 색상 | 토픽 | 설명 |
@@ -50,7 +49,7 @@ EO 카메라 기반 객체 추적 PID 제어 노드의 소프트웨어 시뮬레
 
 ---
 
-### Pan 추적 상세
+### Pan 추적 상세 (480p, Kp=0.1)
 ![tracking_peak_pan](docs/tracking_peak_pan.png)
 
 → detection.cx(파란색)와 motor.pan(주황색) 위상 차이 약 2~3초
@@ -58,30 +57,69 @@ EO 카메라 기반 객체 추적 PID 제어 노드의 소프트웨어 시뮬레
 
 ---
 
-### Tilt 추적 상세
+### Tilt 추적 상세 (480p, Kp=0.1)
 ![tracking_peak_tilt](docs/tracking_peak_tilt.png)
 
 → detection.cy(노란색)와 motor.tilt(초록색) 동일 패턴 확인
 
 ---
 
-## 스텁 실행 방법
+### 전체 추적 응답 (720p, Kp=1.0)
+![tracking_720p_kp1](docs/tracking_720p_kp1.png)
+
+→ 480p 대비 세밀한 제어 확인
+→ Kp=1.0으로 수렴 속도 개선
+
+---
+
+## 시뮬레이션 실행 방법
+
+### 480p / Kp=0.1 (기본)
 
 ```bash
 source /opt/ros/jazzy/setup.bash
 source /root/ros2_ws/install/setup.bash
 
-# 트래킹 노드
 ros2 run sentinel_motor tracking_control_node
 
-# 고정 객체 스텁
-python3 src/stub/static_stub.py
-
-# 이동 객체 스텁 (원형)
 python3 src/stub/moving_stub.py --ros-args \
     -p scenario:=circle -p speed:=0.5
 
-# 랜덤 이동 스텁
+ros2 bag record \
+    --topics /motor/angle/set /driver/eo/detection /system/mode \
+    -o tracking_480p_kp01
+```
+
+### 720p / Kp=1.0
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source /root/ros2_ws/install/setup.bash
+
+ros2 run sentinel_motor tracking_control_node --ros-args \
+    -p kp_pan:=1.0 -p kp_tilt:=1.0
+
+python3 src/stub/moving_stub.py --ros-args \
+    -p scenario:=circle \
+    -p speed:=0.5 \
+    -p frame_w:=1280 \
+    -p frame_h:=720
+
+ros2 bag record \
+    --topics /motor/angle/set /driver/eo/detection /system/mode \
+    -o tracking_720p_kp1
+```
+
+### 고정 객체 테스트
+
+```bash
+python3 src/stub/static_stub.py --ros-args \
+    -p obj_cx:=480.0 -p obj_cy:=300.0
+```
+
+### 랜덤 이동 테스트
+
+```bash
 python3 src/stub/moving_stub.py --ros-args \
     -p scenario:=random -p speed:=1.0
 ```
@@ -106,8 +144,20 @@ ros2 param set /tracking_control_node ki_tilt 0.01
 
 ---
 
+## Foxglove Studio 분석
+
+1. https://foxglove.dev/download 설치
+2. rosbag `.mcap` 파일 열기
+3. Plot 패널 추가 후 토픽 선택:
+   - `/motor/angle/set.pan`
+   - `/motor/angle/set.tilt`
+   - `/driver/eo/detection.cx`
+   - `/driver/eo/detection.cy`
+
+---
+
 ## 비고
 
 - 실제 하드웨어 환경에서 PID 재튜닝 필요
 - 모터 관성, 카메라 FOV, detection 딜레이에 따라 파라미터 달라짐
-- rosbag 녹화 후 Foxglove Studio로 분석 가능
+- 720p 환경에서 deadband 7~10px 권장
