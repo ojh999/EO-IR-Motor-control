@@ -1,3 +1,23 @@
+# Tracking Control Node — 시뮬레이션 검증
+
+EO 카메라 기반 객체 추적 PID 제어 노드의 소프트웨어 시뮬레이션 결과입니다.
+
+---
+
+## 노드 구성
+
+    [MovingStub]                    [StaticStub]
+     가짜 객체 위치 발행              가짜 객체 위치 발행 (고정)
+     /driver/eo/detection            /driver/eo/detection
+     /driver/eo/frame_size           /driver/eo/frame_size
+     /motor/angle/get                /motor/angle/get
+     /system/mode                    /system/mode
+            │                               │
+            ▼                               ▼
+    [TrackingControlNode]
+     PID 계산 → /motor/angle/set
+
+---
 ---
 
 ## 테스트 환경
