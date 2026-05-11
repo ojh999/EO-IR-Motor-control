@@ -1,0 +1,14 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sentinel_interfaces/msg/MotorAngle.msg
+// generated code does not contain a copyright notice
+
+
+module sentinel_interfaces {
+  module msg {
+    struct MotorAngle {
+      uint16 pan;
+
+      uint16 tilt;
+    };
+  };
+};

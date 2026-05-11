@@ -1,0 +1,17 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from sentinel_interfaces/srv/SetBoolFlag.srv
+// generated code does not contain a copyright notice
+
+
+module sentinel_interfaces {
+  module srv {
+    struct SetBoolFlag_Request {
+      boolean data;
+    };
+    struct SetBoolFlag_Response {
+      boolean success;
+
+      string message;
+    };
+  };
+};

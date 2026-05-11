@@ -1,0 +1,8 @@
+source;share/sentinel_motor/hook/cmake_prefix_path.ps1
+source;share/sentinel_motor/hook/cmake_prefix_path.dsv
+source;share/sentinel_motor/hook/cmake_prefix_path.sh
+source;share/sentinel_motor/local_setup.bash
+source;share/sentinel_motor/local_setup.dsv
+source;share/sentinel_motor/local_setup.ps1
+source;share/sentinel_motor/local_setup.sh
+source;share/sentinel_motor/local_setup.zsh

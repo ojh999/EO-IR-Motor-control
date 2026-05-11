@@ -1,0 +1,35 @@
+gui_interface_node:
+  ros__parameters:
+    listen_ip: "0.0.0.0"
+    listen_port: 3000
+    gui_ip: "10.42.0.1"
+    telemetry_port: 5001
+    command_poll_ms: 10
+    motor_tlm_period_ms: 50
+    system_tlm_period_ms: 100
+    frame_tlm_period_ms: 1000
+    system_status_code: 0
+    pan_min_deg: 0.0
+    pan_max_deg: 360.0
+    tilt_min_deg: 110.0
+    tilt_max_deg: 250.0
+    pan_raw_per_deg: 1.0
+    tilt_raw_per_deg: 1.0
+    pan_raw_offset: 0.0
+    tilt_raw_offset: 0.0
+    step_size: 10
+    home_pan: 180
+    home_tilt: 180
+    pan_min: 0
+    pan_max: 360
+    tilt_min: 0
+    tilt_max: 360
+    angle_set_topic: "/motor/angle/set"
+    angle_get_topic: "/motor/angle/get"
+    status_topic: "/motor/status"
+    system_mode_topic: "/system/mode"
+    button_topic: "/control/button"
+    detection_center_x_topic: "/detection/object/center_x"
+    detection_center_y_topic: "/detection/object/center_y"
+    detection_count_topic: "/detection/object/count"
+    frame_info_topic: "/video/frame_info"

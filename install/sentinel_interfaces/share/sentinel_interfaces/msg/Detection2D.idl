@@ -1,0 +1,22 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sentinel_interfaces/msg/Detection2D.msg
+// generated code does not contain a copyright notice
+
+
+module sentinel_interfaces {
+  module msg {
+    struct Detection2D {
+      string class_name;
+
+      float score;
+
+      float x1;
+
+      float y1;
+
+      float x2;
+
+      float y2;
+    };
+  };
+};

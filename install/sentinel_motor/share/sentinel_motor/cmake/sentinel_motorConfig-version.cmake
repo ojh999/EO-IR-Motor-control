@@ -1,0 +1,1 @@
+/root/ros2_ws/build/sentinel_motor/ament_cmake_core/sentinel_motorConfig-version.cmake

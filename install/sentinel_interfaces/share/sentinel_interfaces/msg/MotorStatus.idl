@@ -1,0 +1,15 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sentinel_interfaces/msg/MotorStatus.msg
+// generated code does not contain a copyright notice
+
+#include "sentinel_interfaces/msg/SingleMotorStatus.idl"
+
+module sentinel_interfaces {
+  module msg {
+    struct MotorStatus {
+      sentinel_interfaces::msg::SingleMotorStatus pan;
+
+      sentinel_interfaces::msg::SingleMotorStatus tilt;
+    };
+  };
+};

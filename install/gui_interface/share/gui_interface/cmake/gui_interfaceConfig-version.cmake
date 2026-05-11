@@ -1,0 +1,1 @@
+/root/ros2_ws/build/gui_interface/ament_cmake_core/gui_interfaceConfig-version.cmake

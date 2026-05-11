@@ -1,0 +1,17 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from sentinel_interfaces/srv/SetThreshold.srv
+// generated code does not contain a copyright notice
+
+
+module sentinel_interfaces {
+  module srv {
+    struct SetThreshold_Request {
+      float threshold;
+    };
+    struct SetThreshold_Response {
+      boolean success;
+
+      string message;
+    };
+  };
+};

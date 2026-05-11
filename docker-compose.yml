@@ -1,0 +1,15 @@
+# docker-compose.yml
+services:
+  ros2_ws:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ros2_ws:latest
+    container_name: ros2_ws
+    volumes:
+      - ./src:/root/ros2_ws/src
+      - ./install:/root/ros2_ws/install
+    network_mode: host
+    stdin_open: true
+    tty: true
+    command: bash

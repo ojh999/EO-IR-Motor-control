@@ -1,0 +1,18 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from sentinel_interfaces/msg/Detection2DArray.msg
+// generated code does not contain a copyright notice
+
+#include "builtin_interfaces/msg/Time.idl"
+#include "sentinel_interfaces/msg/Detection2D.idl"
+
+module sentinel_interfaces {
+  module msg {
+    struct Detection2DArray {
+      builtin_interfaces::msg::Time stamp;
+
+      uint32 frame_id;
+
+      sequence<sentinel_interfaces::msg::Detection2D> detections;
+    };
+  };
+};

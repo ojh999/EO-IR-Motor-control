@@ -1,0 +1,36 @@
+{
+  "type_description_msg": {
+    "type_description": {
+      "type_name": "sentinel_interfaces/msg/ObjectCenter",
+      "fields": [
+        {
+          "name": "center_x",
+          "type": {
+            "type_id": 11,
+            "capacity": 0,
+            "string_capacity": 0,
+            "nested_type_name": ""
+          },
+          "default_value": ""
+        },
+        {
+          "name": "center_y",
+          "type": {
+            "type_id": 11,
+            "capacity": 0,
+            "string_capacity": 0,
+            "nested_type_name": ""
+          },
+          "default_value": ""
+        }
+      ]
+    },
+    "referenced_type_descriptions": []
+  },
+  "type_hashes": [
+    {
+      "type_name": "sentinel_interfaces/msg/ObjectCenter",
+      "hash_string": "RIHS01_6b2474031383dec4347c86e4ea14892ca196807db935bbb6c11c51be4f093c6f"
+    }
+  ]
+}
