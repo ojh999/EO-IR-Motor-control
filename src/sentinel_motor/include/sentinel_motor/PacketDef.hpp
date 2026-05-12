@@ -10,54 +10,51 @@ namespace sentinel_motor
 {
 
 // ─── Packet Sizes ────────────────────────────────────────────────────
-constexpr std::size_t kCommandPacketSize  = 9;   // Jetson -> Zybo
+// Thor → Zybo: 8B [mode][btn][pan(2)][tilt(2)][scan_step][manual_step]
+// Zybo → Thor: 36B [PAN(18B)][TILT(18B)]
+constexpr std::size_t kCommandPacketSize  = 8;   // Thor → Zybo
 constexpr std::size_t kMotorFeedbackSize  = 18;
-constexpr std::size_t kFeedbackPacketSize = 36;  // Zybo -> Jetson (18B × 2)
+constexpr std::size_t kFeedbackPacketSize = 36;  // Zybo → Thor (18B × 2)
 
-// ─── Mode (scan=0, manual=1, scan+track=2, manual+track=3) ──────────
-constexpr uint8_t kModeScan         = 0;
-constexpr uint8_t kModeManual       = 1;
-constexpr uint8_t kModeScanTrack    = 2;
-constexpr uint8_t kModeManualTrack  = 3;
+// ─── Mode ────────────────────────────────────────────────────────────
+// GUI: auto_manual(0/1) + tracking(0/1) 조합
+// gui_interface 노드가 아래 mode_cmd(0/1/2)로 변환 후 /system/mode 발행
+constexpr uint8_t kModeScan   = 0;  // auto_manual=0, tracking=0
+constexpr uint8_t kModeManual = 1;  // auto_manual=1, tracking=0
+constexpr uint8_t kModeTrack  = 2;  // auto_manual=1, tracking=1
 
-inline bool is_tracking(uint8_t mode)
-{
-  return mode == kModeScanTrack || mode == kModeManualTrack;
-}
+// ─── Button Bitmask (MANUAL 모드 전용) ───────────────────────────────
+// GUI BUTTON_L/R/U/D와 동일하게 맞춰야 함
+constexpr uint8_t kButtonPanMinus  = 0x01;  // 팬 - (좌)
+constexpr uint8_t kButtonPanPlus   = 0x02;  // 팬 + (우)
+constexpr uint8_t kButtonTiltPlus  = 0x04;  // 틸트 + (업)
+constexpr uint8_t kButtonTiltMinus = 0x08;  // 틸트 - (다운)
+constexpr uint8_t kButtonCenter    = 0x10;  // 홈/센터
 
-inline uint8_t base_mode(uint8_t mode)
-{
-  return (mode >= kModeScanTrack) ? static_cast<uint8_t>(mode - 2U) : mode;
-}
-
-// ─── Button Bitmask ──────────────────────────────────────────────────
-constexpr uint8_t kButtonLeft   = 0x01;
-constexpr uint8_t kButtonRight  = 0x02;
-constexpr uint8_t kButtonUp     = 0x04;
-constexpr uint8_t kButtonDown   = 0x08;
-constexpr uint8_t kButtonCenter = 0x10;
-
-// ─── Command Packet (Jetson -> Zybo, 9 bytes) ───────────────────────
-//   Byte 0     : mode           (uint8, 0~3)
-//   Byte 1     : scan_button    (uint8, bitmask)
-//   Byte 2     : manual_button  (uint8, bitmask)
-//   Byte 3..4  : pan            (uint16, LE, 0~4095)
-//   Byte 5..6  : tilt           (uint16, LE, 0~4095)
-//   Byte 7     : scan_step      (uint8)
-//   Byte 8     : manual_step    (uint8)
+// ─── Command Packet (Thor → Zybo, 8B) ───────────────────────────────
+//   Byte 0    : mode        (uint8, 0=SCAN / 1=MANUAL / 2=TRACK)
+//   Byte 1    : btn         (uint8, 버튼 비트마스크, MANUAL 모드 전용)
+//   Byte 2..3 : pan         (uint16, LE, 0~4095)
+//   Byte 4..5 : tilt        (uint16, LE, 0~4095)
+//   Byte 6    : scan_step   (uint8, 1~10)
+//   Byte 7    : manual_step (uint8, 1~10)
+//
+// 모드별 유효 필드:
+//   SCAN   : mode=0, btn=0,   pan=0,      tilt=0,      scan_step, manual_step
+//   MANUAL : mode=1, btn=비트마스크, pan=0, tilt=0,    scan_step, manual_step
+//   TRACK  : mode=2, btn=0,   pan=step값, tilt=step값, scan_step, manual_step
 
 struct CommandPacket
 {
-  uint8_t  mode{0};
-  uint8_t  scan_button{0};
-  uint8_t  manual_button{0};
+  uint8_t  mode{kModeScan};
+  uint8_t  btn{0};
   uint16_t pan{0};
   uint16_t tilt{0};
   uint8_t  scan_step{1};
-  uint8_t  manual_step{1};
+  uint8_t  man_step{1};
 };
 
-// ─── Motor Feedback (18 bytes per motor) ─────────────────────────────
+// ─── Motor Feedback (18B per motor) ──────────────────────────────────
 //   Byte 0     : moving         (uint8)
 //   Byte 1     : moving_status  (uint8)
 //   Byte 2..3  : pwm            (uint16, LE)
@@ -81,7 +78,7 @@ struct MotorFeedback
   uint8_t  hw_error{0};
 };
 
-// ─── Feedback Packet (Zybo -> Jetson, 36 bytes) ─────────────────────
+// ─── Feedback Packet (Zybo → Thor, 36B) ──────────────────────────────
 //   Byte 0..17 : pan  MotorFeedback
 //   Byte 18..35: tilt MotorFeedback
 
@@ -107,7 +104,7 @@ inline uint16_t read_le16(const uint8_t * src)
 
 inline uint32_t read_le32(const uint8_t * src)
 {
-  return static_cast<uint32_t>(src[0])        |
+  return static_cast<uint32_t>(src[0])         |
          (static_cast<uint32_t>(src[1]) << 8U)  |
          (static_cast<uint32_t>(src[2]) << 16U) |
          (static_cast<uint32_t>(src[3]) << 24U);
@@ -119,28 +116,26 @@ inline std::array<uint8_t, kCommandPacketSize> serialize_command(const CommandPa
 {
   std::array<uint8_t, kCommandPacketSize> packet{};
   packet[0] = cmd.mode;
-  packet[1] = cmd.scan_button;
-  packet[2] = cmd.manual_button;
-  write_le16(cmd.pan,  &packet[3]);
-  write_le16(cmd.tilt, &packet[5]);
-  packet[7] = cmd.scan_step;
-  packet[8] = cmd.manual_step;
+  packet[1] = cmd.btn;
+  write_le16(cmd.pan,  &packet[2]);
+  write_le16(cmd.tilt, &packet[4]);
+  packet[6] = cmd.scan_step;
+  packet[7] = cmd.man_step;
   return packet;
 }
 
 inline CommandPacket parse_command(const uint8_t * data, std::size_t size)
 {
   if (size < kCommandPacketSize) {
-    throw std::runtime_error("invalid command packet size: expected 9 bytes");
+    throw std::runtime_error("invalid command packet size: expected 8 bytes");
   }
   CommandPacket cmd{};
-  cmd.mode          = data[0];
-  cmd.scan_button   = data[1];
-  cmd.manual_button = data[2];
-  cmd.pan           = read_le16(&data[3]);
-  cmd.tilt          = read_le16(&data[5]);
-  cmd.scan_step     = data[7];
-  cmd.manual_step   = data[8];
+  cmd.mode      = data[0];
+  cmd.btn       = data[1];
+  cmd.pan       = read_le16(&data[2]);
+  cmd.tilt      = read_le16(&data[4]);
+  cmd.scan_step = data[6];
+  cmd.man_step  = data[7];
   return cmd;
 }
 
@@ -167,14 +162,12 @@ inline void write_motor_feedback(const MotorFeedback & fb, uint8_t * dst)
   dst[1] = fb.moving_status;
   write_le16(fb.pwm,     &dst[2]);
   write_le16(fb.current, &dst[4]);
-  // velocity (4B LE)
   dst[6]  = static_cast<uint8_t>(fb.velocity & 0xFFU);
-  dst[7]  = static_cast<uint8_t>((fb.velocity >> 8U) & 0xFFU);
+  dst[7]  = static_cast<uint8_t>((fb.velocity >> 8U)  & 0xFFU);
   dst[8]  = static_cast<uint8_t>((fb.velocity >> 16U) & 0xFFU);
   dst[9]  = static_cast<uint8_t>((fb.velocity >> 24U) & 0xFFU);
-  // position (4B LE)
   dst[10] = static_cast<uint8_t>(fb.position & 0xFFU);
-  dst[11] = static_cast<uint8_t>((fb.position >> 8U) & 0xFFU);
+  dst[11] = static_cast<uint8_t>((fb.position >> 8U)  & 0xFFU);
   dst[12] = static_cast<uint8_t>((fb.position >> 16U) & 0xFFU);
   dst[13] = static_cast<uint8_t>((fb.position >> 24U) & 0xFFU);
   write_le16(fb.voltage, &dst[14]);

@@ -4,15 +4,19 @@ project(sentinel_interfaces)
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(builtin_interfaces REQUIRED)
+find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/ObjectCenter.msg"
-  "msg/PanTiltAngle.msg"
+  "msg/Detection.msg"
   "msg/MotorAngle.msg"
-  "msg/SingleMotorStatus.msg"
-  "msg/MotorStatus.msg"
-  "msg/ButtonInput.msg"
+  "msg/Detection2D.msg"
+  "msg/Detection2DArray.msg"
   "msg/FrameInfo.msg"
+  "msg/FrameSize.msg"
+  "msg/VideoRxStatus.msg"
+  "msg/YoloStatus.msg"
+  "srv/SetBoolFlag.srv"
+  "srv/SetThreshold.srv"
   DEPENDENCIES builtin_interfaces
 )
 
