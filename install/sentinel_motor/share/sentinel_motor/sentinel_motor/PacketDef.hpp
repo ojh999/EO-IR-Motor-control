@@ -1,1 +1,0 @@
-/root/ros2_ws/src/sentinel_motor/include/sentinel_motor/PacketDef.hpp
