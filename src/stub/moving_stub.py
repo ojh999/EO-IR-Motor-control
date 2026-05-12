@@ -10,17 +10,17 @@ class MovingStub(Node):
     def __init__(self):
         super().__init__('moving_stub')
 
-        self.declare_parameter('frame_w',      640)
-        self.declare_parameter('frame_h',      480)
+        self.declare_parameter('frame_w',      1280)
+        self.declare_parameter('frame_h',      720)
         self.declare_parameter('pub_hz',       10.0)
         self.declare_parameter('scenario',     'circle')  # circle | sweep | random
         self.declare_parameter('speed',        1.0)       # 객체 이동 속도 배율
         self.declare_parameter('deg_to_px',    4.0)       # 모터 1도당 픽셀
 
         # 시나리오별 파라미터
-        self.declare_parameter('center_pan',   180.0)     # 객체 중심 pan 각도
-        self.declare_parameter('center_tilt',  180.0)     # 객체 중심 tilt 각도
-        self.declare_parameter('radius_deg',   10.0)      # circle 반경 (도)
+        self.declare_parameter('center_pan',   2047.0)     # 객체 중심 pan 각도
+        self.declare_parameter('center_tilt',  2047.0)     # 객체 중심 tilt 각도
+        self.declare_parameter('radius_deg',   50.0)      # circle 반경 (도)
         self.declare_parameter('amplitude_deg', 15.0)     # sweep 진폭 (도)
 
         self.frame_w       = self.get_parameter('frame_w').value
@@ -35,8 +35,8 @@ class MovingStub(Node):
         self.amplitude_deg = self.get_parameter('amplitude_deg').value
 
         # 모터 현재 위치 (cmd 피드백으로 업데이트)
-        self.current_pan   = 180.0
-        self.current_tilt  = 180.0
+        self.current_pan   = 2047.0
+        self.current_tilt  = 2047.0
 
         # 시간/상태
         self.t   = 0.0
@@ -70,7 +70,7 @@ class MovingStub(Node):
     def tick(self):
         # 모드
         mode = UInt8()
-        mode.data = 1
+        mode.data = 2
         self.pub_mode.publish(mode)
 
         # 프레임 사이즈
