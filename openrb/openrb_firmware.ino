@@ -363,9 +363,8 @@ void update_manual()
     int32_t pan_delta  = 0;
     int32_t tilt_delta = 0;
 
-    // BUG FIX: 팬 모터 물리적 장착 방향 반전으로 부호 반전
-    if (manual_btn & BTN_PAN_PLUS)   pan_delta  -= manual_step;
-    if (manual_btn & BTN_PAN_MINUS)  pan_delta  += manual_step;
+    if (manual_btn & BTN_PAN_PLUS)   pan_delta  += manual_step;
+    if (manual_btn & BTN_PAN_MINUS)  pan_delta  -= manual_step;
     if (manual_btn & BTN_TILT_PLUS)  tilt_delta += manual_step;
     if (manual_btn & BTN_TILT_MINUS) tilt_delta -= manual_step;
 
@@ -441,7 +440,7 @@ void loop()
     // ── RX 수신 ──
     while (DEBUG_SERIAL.available()) {
         uint8_t b = DEBUG_SERIAL.read();
-        if (b == FRAME_START) rx_idx = 0;
+        if (rx_idx == 0 && b != FRAME_START) continue;
         if (rx_idx < RX_FRAME_LEN) rx_buf[rx_idx++] = b;
         if (rx_idx == RX_FRAME_LEN) {
             frame_handle(rx_buf);
