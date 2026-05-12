@@ -162,8 +162,8 @@ private:
 
     int    current_mode_       = 0;
     bool   angle_initialized_  = false;  // 최초 모터 위치 수신 여부
-    double current_pan_        = 180.0;
-    double current_tilt_       = 180.0;
+    double current_pan_        = 2047.0;
+    double current_tilt_       = 2047.0;
     double cx_ = 0.0, cy_      = 0.0;
     int    frame_w_ = 0, frame_h_ = 0;
 
@@ -177,9 +177,9 @@ private:
     double kd_pan_,  kd_tilt_;
     int    deadband_px_;
 
-    const int TRACKING_MODE = 1;
-    const int PAN_MIN  = 0,   PAN_MAX  = 360;
-    const int TILT_MIN = 0,   TILT_MAX = 360;
+    const int TRACKING_MODE = 2;
+    const int PAN_MIN  = 0,   PAN_MAX  = 4095;
+    const int TILT_MIN = 0,   TILT_MAX = 4095;
 };
 
 int main(int argc, char **argv)
